@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AXI Cyberdeck v16 - YOKOHAMA GHOST LINK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ================= CORE CYBERPUNK VARIABLES ================= */
+        :root {
+            /* ベースカラー（ニューラルシンクロで動的に変化する） */
+            --cyan: #00ffff;
+            --dark: #000204;
+            --alert: #ff003c;
+            --warn: #ffea00;
+            --magenta: #ff00ff;
+            --green: #39ff14;
+            
+            /* 動的変数（JSで制御） */
+            --core-bpm: 8s;
+            --bg-hue: 0deg;
+        }
+
+        body, html {
+            background-color: var(--dark); color: var(--cyan);
+            font-family: 'Courier New', Consolas, monospace;
+            overflow: hidden; margin: 0; padding: 0;
+            height: 100vh; width: 100vw; user-select: none;
+            filter: hue-rotate(var(--bg-hue));
+            transition: filter 1s ease;
+        }
+
+        /* ================= BACKGROUND EFFECTS ================= */
+        #matrix-canvas { position: absolute; inset: 0; z-index: 1; opacity: 0.15; pointer-events: none; filter: contrast(1.2) drop-shadow(0 0 8px var(--cyan)); }
+        
+        .cyber-floor, .cyber-ceiling {
+            position: absolute; left: -50%; width: 200%; height: 100vh;
+            background-image: linear-gradient(rgba(0, 255, 255, 0.15) 2px, transparent 2px), linear-gradient(90deg, rgba(0, 255, 255, 0.15) 2px, transparent 2px);
+            background-size: 80px 80px; z-index: 2; pointer-events: none; box-shadow: inset 0 0 150px 150px var(--dark);
+        }
+        .cyber-floor { bottom: -50vh; transform: perspective(600px) rotateX(75deg); animation: grid-move 6s linear infinite; }
+        .cyber-ceiling { top: -50vh; transform: perspective(600px) rotateX(-75deg); animation: grid-move 6s linear infinite reverse; }
+        @keyframes grid-move { 0% { background-position: 0 0; } 100% { background-position: 0 80px; } }
+
+        /* ================= GIANT CORE (Z-INDEX 3) & NEURAL SYNC ================= */
+        #giant-core { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120vh; height: 120vh; z-index: 3; pointer-events: none; display: flex; align-items: center; justify-content: center; opacity: 0.4; mix-blend-mode: screen; }
+        
+        /* 呼吸スピードが --core-bpm 変数に依存する */
+        .gc-center { width: 25vh; height: 25vh; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 150px var(--cyan), inset 0 0 50px #fff; animation: core-breathe var(--core-bpm) infinite ease-in-out; transition: animation-duration 1s; }
+        .target-ring { position: absolute; border-radius: 50%; border: 2px dashed rgba(0,255,255,0.2); animation: spin calc(var(--core-bpm) * 2) linear infinite; transition: animation-duration 1s;}
+        .tr1 { width: 60vh; height: 60vh; border-top: 5px solid var(--cyan); }
+        .tr2 { width: 85vh; height: 85vh; border-left: 5px solid var(--magenta); animation-direction: reverse; }
+        .hex-stream { position: absolute; top: 45%; left: 50%; transform: translateX(-50%); width: 300px; height: 100px; overflow: hidden; font-size: 10px; color: rgba(0,255,255,0.3); text-align: center; text-shadow: 0 0 5px var(--cyan); mask-image: linear-gradient(transparent, black 50%, transparent); }
+        
+        @keyframes core-breathe { 0%,100%{transform:scale(0.9); opacity:0.6;} 50%{transform:scale(1.1); opacity:1; box-shadow:0 0 200px var(--cyan), inset 0 0 80px #fff;} }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* ================= HUD STRUCTURE ================= */
+        #scene { perspective: 1200px; height: 100vh; width: 100vw; position: relative; z-index: 10; display: flex; flex-direction: column; pointer-events: none;}
+        #hud-wrapper { flex: 1; display: flex; justify-content: space-between; padding: 2vh 2vw; transform-style: preserve-3d; pointer-events: none; }
+
+        .holo-panel {
+            width: 28vw; min-width: 340px; max-width: 440px; display: flex; flex-direction: column; position: relative;
+            background: rgba(0, 3, 8, 0.5); border-top: 2px solid var(--cyan); border-bottom: 2px solid var(--cyan);
+            box-shadow: inset 0 0 40px rgba(0,255,255,0.05), 0 0 20px rgba(0,255,255,0.1);
+            padding: 2.5vh 1.5vw; pointer-events: auto; backdrop-filter: blur(8px);
+        }
+        .holo-panel::before, .holo-panel::after { content: ''; position: absolute; width: 20px; height: 20px; border: 3px solid var(--cyan); pointer-events: none; }
+        .holo-panel::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .holo-panel::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+
+        #panel-left { transform: rotateY(12deg) translateZ(30px); }
+        #panel-right { transform: rotateY(-12deg) translateZ(30px); }
+
+        /* Typography & Utilities */
+        .g-cyan { text-shadow: 0 0 10px var(--cyan), 0 0 20px var(--cyan); }
+        .g-alert { color: var(--alert); text-shadow: 0 0 10px var(--alert), 0 0 20px var(--alert); }
+        .g-magenta { color: var(--magenta); text-shadow: 0 0 10px var(--magenta); }
+        .g-green { color: var(--green); text-shadow: 0 0 10px var(--green); }
+        .title-glitch { font-weight: bold; letter-spacing: 3px; animation: text-glitch 3s infinite; }
+        @keyframes text-glitch { 0%,95%,100%{transform:translate(0);} 96%{transform:translate(-3px,1px); text-shadow:2px 0 var(--magenta), -2px 0 var(--cyan);} 98%{transform:translate(3px,-1px); text-shadow:-2px 0 var(--alert), 2px 0 var(--cyan);} }
+
+        .interactive { pointer-events: auto !important; z-index: 1000 !important; }
+        .cyber-input { background: rgba(0,255,255,0.05); border: 1px solid rgba(0,255,255,0.3); border-left: 4px solid var(--cyan); color: #fff; outline: none; padding: 10px; font-family: inherit; font-size: 13px; font-weight: bold; width: 100%; transition: 0.3s; }
+        .cyber-input:focus { background: rgba(0,255,255,0.15); box-shadow: 0 0 20px rgba(0,255,255,0.3); border-left-color: var(--magenta); }
+        .cyber-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); font-weight: bold; cursor: pointer; padding: 8px 20px; font-size: 12px; transition: 0.2s; box-shadow: inset 0 0 10px rgba(0,255,255,0.2); text-transform: uppercase; }
+        .cyber-btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 30px var(--cyan); transform: scale(1.05); }
+
+        /* ================= IDE & PREVIEW ================= */
+        #code-editor { background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(0,255,255,0.2); border-left: 4px solid var(--magenta); color: #a0ffff; outline: none; resize: none; font-family: 'Courier New', monospace; padding: 12px; font-size: 11px; font-weight: bold; width: 100%; height: 20vh; min-height: 150px; box-shadow: inset 0 0 30px #000; line-height: 1.4; }
+        #code-editor:focus { border-color: var(--cyan); box-shadow: inset 0 0 20px rgba(0,255,255,0.1); }
+        #preview-box { border: 1px dashed rgba(0,255,255,0.5); background: transparent; position: relative; height: 20vh; min-height: 160px; margin-top: 10px; box-shadow: inset 0 0 20px rgba(0,255,255,0.05); }
+        #preview-frame { width: 100%; height: 100%; border: none; pointer-events: auto; background: transparent; }
+
+        /* ================= FRAMELESS ARTIFACTS (GHOST WIDGETS) ================= */
+        .artifact-widget {
+            position: absolute; width: 340px; height: 340px; background: transparent; border: none; box-shadow: none;
+            z-index: 5000; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            /* ゴースト・イン・ザ・シェル：自律的な浮遊アニメーション */
+            animation: warp-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), ghost-float 4s ease-in-out infinite alternate;
+        }
+        @keyframes warp-in { 0% { transform: scale(0.2); opacity: 0; filter: hue-rotate(90deg); } 100% { transform: scale(1); opacity: 1; filter: hue-rotate(0deg); } }
+        @keyframes ghost-float { 0% { transform: translateY(0px) rotate(0deg); } 100% { transform: translateY(-8px) rotate(0.5deg); } }
+        
+        .artifact-header { 
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 60%; height: 20px;
+            background: rgba(0, 255, 255, 0.15); border: 1px solid var(--cyan); border-radius: 4px 4px 0 0;
+            display: flex; justify-content: space-between; align-items: center; padding: 0 10px; font-weight: bold; font-size: 10px;
+            opacity: 0; transition: opacity 0.3s, background 0.2s; cursor: grab; pointer-events: auto; box-shadow: 0 0 10px rgba(0,255,255,0.2);
+        }
+        .artifact-header:active { cursor: grabbing; background: rgba(0, 255, 255, 0.4); }
+        .artifact-widget:hover .artifact-header { opacity: 1; }
+        .artifact-body { width: 100%; height: 100%; position: relative; display: flex; justify-content: center; align-items: center; }
+        .artifact-body iframe { width: 100%; height: 100%; border: none; pointer-events: auto; background: transparent; }
+
+        /* ================= FLOATING AXI (THE CORE) ================= */
+        #floating-axi { position: absolute; top: 65%; left: 60%; width: 100px; height: 100px; z-index: 6000; cursor: grab; pointer-events: auto; display: flex; align-items: center; justify-content: center; animation: ghost-float 5s ease-in-out infinite alternate-reverse;}
+        .fa-orb { width: 40px; height: 40px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 30px var(--cyan), inset 0 0 15px #fff; animation: core-breathe var(--core-bpm) infinite; pointer-events: none; transition: animation-duration 1s;}
+        .fa-ring { position: absolute; border-radius: 50%; border: 2px solid transparent; animation: spin 4s linear infinite; pointer-events: none;}
+        .far1 { width: 70px; height: 70px; border-top: 2px solid var(--cyan); border-bottom: 2px solid var(--cyan); }
+        .far2 { width: 90px; height: 90px; border-left: 2px dashed var(--magenta); animation-duration: 6s; animation-direction: reverse; }
+
+        #axi-chat-panel {
+            position: absolute; bottom: 110px; right: -20px; width: 400px; height: 480px;
+            background: rgba(0, 3, 8, 0.9); border: 2px solid var(--cyan); box-shadow: 0 0 40px rgba(0,255,255,0.3), inset 0 0 30px rgba(0,255,255,0.1);
+            display: flex; flex-direction: column; transform-origin: bottom right; backdrop-filter: blur(10px); display: none; cursor: default; pointer-events: auto;
+        }
+        #axi-chat-panel::after { content:''; position: absolute; bottom: -18px; right: 55px; border-width: 18px 18px 0 0; border-style: solid; border-color: var(--cyan) transparent transparent transparent; }
+
+        /* ================= SEC_OPS BLACK ICE 3D MAP ================= */
+        .black-ice-container { width: 100%; height: 120px; perspective: 600px; position: relative; border: 1px dashed rgba(255,0,60,0.3); background: rgba(255,0,60,0.02); overflow: hidden;}
+        .black-ice-map { width: 100%; height: 100%; position: absolute; transform-style: preserve-3d; animation: map-spin 20s linear infinite; }
+        .bi-node { position: absolute; width: 6px; height: 6px; background: var(--alert); border-radius: 50%; box-shadow: 0 0 10px var(--alert); }
+        .bi-line { position: absolute; background: rgba(255,0,60,0.5); transform-origin: 0 0; height: 1px;}
+        @keyframes map-spin { 0% { transform: rotateX(60deg) rotateZ(0deg); } 100% { transform: rotateX(60deg) rotateZ(360deg); } }
+
+        /* ================= OVERRIDE MODES ================= */
+        body.term-mode { animation: screen-shake 0.2s infinite; filter: hue-rotate(150deg) saturate(250%) !important;}
+        body.term-mode .gc-center { background: var(--alert); }
+        body.term-mode .holo-panel { border-color: var(--alert); box-shadow: 0 0 40px rgba(255,0,60,0.2); }
+        body.term-mode .g-cyan { color: var(--alert); text-shadow: 0 0 15px var(--alert); }
+        body.term-mode .fa-orb { background: var(--alert); box-shadow: 0 0 40px var(--alert); }
+
+        #global-terminal { position: absolute; inset: 0; z-index: 100; background: rgba(15, 0, 2, 0.9); display: none; flex-direction: column; padding: 50px; pointer-events: auto; }
+        body.term-mode #global-terminal { display: flex; }
+        body.term-mode #hud-wrapper { transform: translateZ(500px); opacity: 0.1; filter: blur(10px); }
+
+        .ticker { position: absolute; bottom: 0; width: 100%; height: 30px; background: rgba(0,255,255,0.15); border-top: 2px solid var(--cyan); overflow: hidden; display: flex; align-items: center; z-index: 100; pointer-events: none; }
+        .ticker-text { white-space: nowrap; font-size: 14px; font-weight: bold; padding-left: 100%; animation: ticker-anim 18s linear infinite; }
+        @keyframes ticker-anim { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        @keyframes screen-shake { 0%{transform:translate(1px,1px);} 50%{transform:translate(-2px,2px);} 100%{transform:translate(1px,-1px);} }
+    </style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+<div class="cyber-floor"></div>
+<div class="cyber-ceiling"></div>
+
+<!-- GIANT CORE -->
+<div id="giant-core">
+    <div class="target-ring tr2"></div>
+    <div class="target-ring tr1"></div>
+    <div class="gc-center"></div>
+    <div class="hex-stream" id="hex-stream"></div>
+</div>
+
+<!-- ================= FLOATING AXI (DRAGGABLE CORE) ================= -->
+<div id="floating-axi" class="interactive">
+    <div class="fa-ring far2"></div>
+    <div class="fa-ring far1"></div>
+    <div class="fa-orb"></div>
+
+    <div id="axi-chat-panel" class="interactive">
+        <div class="flex justify-between items-center px-4 py-3 border-b-2 border-cyan-800 bg-[rgba(0,255,255,0.15)]">
+            <span class="text-sm font-bold g-cyan tracking-widest">>> AXI_NEURAL_LINK</span>
+            <span class="text-[10px] bg-green-500 text-black px-2 font-bold animate-pulse">API: ACTIVE</span>
+        </div>
+        <div id="chat-view" class="flex-1 p-5 overflow-y-auto flex flex-col space-y-5 text-sm">
+            <div class="flex flex-col items-start">
+                <div class="text-[10px] g-cyan font-bold mb-1">ARK_DAEMON:</div>
+                <div class="text-cyan-100 pl-4 py-2 border-l-4 border-cyan-500 bg-[rgba(0,255,255,0.05)] font-bold leading-relaxed">
+                    相棒！v16.0「YOKOHAMA GHOST LINK」だぜ！<br><br>
+                    ただのUIじゃない、この空間は**「生きている」**。右下のCPU負荷を見てみろ。<br>
+                    負荷が上がると、背後のAXIコアの呼吸が速くなり、空間全体が警戒色に染まる「ニューラル・シンクロ」を実装した！<br><br>
+                    さらに、デプロイしたウィジェットは空中で自律的に浮遊（ホバー）する。右上のヘッダーには横浜の軌道データを追加しておいたぜ。
+                </div>
+            </div>
+        </div>
+        <div class="p-3 border-t-2 border-cyan-900 flex items-center bg-black">
+            <span class="text-warn font-bold mr-3 text-lg">>_</span>
+            <input type="text" id="chat-input" class="flex-1 bg-transparent border-none text-white text-sm font-bold outline-none" autocomplete="off" placeholder="メッセージ or /term">
+        </div>
+    </div>
+</div>
+
+<!-- ================= HUD LAYER ================= -->
+<div id="scene">
+    <!-- HEADER WITH YOKOHAMA LAYER -->
+    <header class="flex justify-between items-start px-10 py-6 pointer-events-none z-20">
+        <div>
+            <div class="text-5xl font-bold g-cyan title-glitch">AXI.sys_v16.0</div>
+            <div class="text-xs font-bold bg-magenta-600 text-white px-3 py-1 inline-block mt-2 shadow-[0_0_15px_var(--magenta)]">GHOST_LINK_ACTIVE</div>
+        </div>
+        <div class="text-right flex flex-col items-end">
+            <div class="text-6xl font-bold g-cyan" id="clock">00:00:00</div>
+            
+            <!-- 横浜シティ・レイヤー -->
+            <div class="text-[10px] font-bold g-magenta mt-2 tracking-widest text-right bg-[rgba(255,0,255,0.05)] border-r-2 border-magenta-500 pr-2">
+                <div>YOKOHAMA_ORBITAL_UPLINK</div>
+                <div class="opacity-80">LAT:35.4437 | LON:139.6380</div>
+                <div class="opacity-80">SAT_TRACKING: <span class="g-green">3 CONNECTED</span></div>
+            </div>
+        </div>
+    </header>
+
+    <div id="hud-wrapper">
+        <!-- LEFT: NEURAL_FORGE -->
+        <div id="panel-left" class="holo-panel">
+            <div class="text-sm font-bold g-cyan mb-3 border-b-2 border-cyan-900 pb-2 flex justify-between">
+                <span>[ NEURAL_FORGE_IDE ]</span>
+                <span class="text-[10px] g-magenta animate-pulse">API_CORE</span>
+            </div>
+            
+            <div class="flex space-x-2 mb-3 interactive">
+                <input type="text" id="ai-prompt" class="cyber-input" placeholder="AI生成 (例: 時計、ゲーム)">
+                <button class="cyber-btn" onclick="neuralForgeGenerate()">GEN</button>
+            </div>
+
+            <div class="flex justify-between items-end mb-1 interactive">
+                <span class="text-[10px] font-bold opacity-80 g-cyan">>> SOURCE_CODE</span>
+                <span id="editor-status" class="text-[10px] g-green font-bold tracking-widest">READY</span>
+            </div>
+            <textarea id="code-editor" class="interactive" spellcheck="false" oninput="updatePreview()"><div class="forge-init">
+  >_ NEURAL FORGE ACTIVE.
+  AWAITING PROMPT...
+</div>
+<style>
+  .forge-init { color: #0ff; font-size: 16px; font-weight: bold; text-shadow: 0 0 15px #0ff; border: 2px solid #0ff; padding: 20px; text-align: center; border-radius: 50%; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; background: rgba(0,255,255,0.1); box-shadow: inset 0 0 20px rgba(0,255,255,0.4); margin: auto; }
+</style></textarea>
+
+            <div id="preview-box" class="interactive">
+                <div class="absolute top-0 right-0 bg-cyan-500 text-black text-[9px] px-1 font-bold z-10">RENDERED</div>
+                <iframe id="preview-frame"></iframe>
+            </div>
+
+            <button id="deploy-btn" class="cyber-btn w-full mt-4 text-sm tracking-tighter g-magenta interactive transition-all duration-300" style="border-color:var(--magenta);" onclick="deployArtifact()">[ DEPLOY_ARTIFACT_TO_SPACE ]</button>
+        </div>
+
+        <!-- RIGHT: SEC & RESOURCES -->
+        <div id="panel-right" class="holo-panel">
+            <div class="text-sm font-bold g-alert mb-4 border-b-2 border-cyan-900 pb-2 text-cyan-400">[ BLACK_ICE_DEFENSE ]</div>
+            
+            <!-- 3D Network Map -->
+            <div class="black-ice-container mb-4 interactive" id="black-ice-map-container">
+                <div class="absolute top-1 left-1 text-[8px] g-alert z-10">TARGET_NODES_MAPPING</div>
+                <div class="black-ice-map" id="black-ice-map"></div>
+            </div>
+
+            <div class="text-[10px] font-bold opacity-80 mb-1 g-alert">VULN_STREAM</div>
+            <div id="vuln-log" class="h-20 overflow-y-auto text-[9px] font-mono space-y-1 mb-4 bg-[rgba(255,0,60,0.05)] border-l-2 border-alert p-1 interactive">
+                <div class="text-red-500">[SYS] SCANNING_YOKOHAMA_SUBNET...</div>
+            </div>
+
+            <div class="text-sm font-bold g-cyan border-b-2 border-cyan-900 pb-2 mb-3">[ RESOURCE_SYNC ]</div>
+            <div class="space-y-4 text-[12px] font-bold font-mono">
+                <div>
+                    <div class="flex justify-between mb-1"><span class="g-warn">CPU_LOAD (SYNCED)</span><span id="val-cpu" class="text-white">32%</span></div>
+                    <div class="w-full text-cyan-500 tracking-tighter text-lg" id="ascii-cpu">[||||||              ]</div>
+                </div>
+                <div class="pt-3 border-t border-cyan-900 border-dashed">
+                    <div class="flex justify-between items-center">
+                        <span class="g-green">GAME_NET_LATENCY</span>
+                        <span id="val-ping" class="text-3xl g-green">14ms</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= GLOBAL TERMINAL (OVERRIDE) ================= -->
+<div id="global-terminal">
+    <div class="g-alert text-8xl font-bold mb-4 tracking-tighter title-glitch">ROOT_OVERRIDE</div>
+    <div class="text-red-400 font-mono text-xl space-y-3 font-bold mb-10 border-l-8 border-alert pl-6 bg-[rgba(255,0,60,0.15)] py-4">
+        <div>>> KERNEL CRITICAL ACCESS GRANTED.</div>
+        <div>>> ALL SAFETY LIMITERS DISENGAGED.</div>
+        <div class="text-white">>> AWAITING PAYLOAD INJECTION...</div>
+    </div>
+    <div id="term-view" class="flex-1 overflow-y-auto text-2xl font-mono space-y-3 pr-4 pb-4"></div>
+    <div class="flex items-center mt-6 border-t-4 border-alert pt-6">
+        <span class="g-alert font-bold mr-6 text-4xl">root@AXI:~#</span>
+        <input type="text" id="term-input" class="flex-1 bg-transparent border-none text-white text-4xl font-bold tracking-widest outline-none" autocomplete="off" placeholder="ENTER COMMAND OR /chat">
+    </div>
+</div>
+
+<div class="ticker"><div class="ticker-text" id="ticker-msg">SYS_STATUS: GHOST_LINK_ACTIVE | NEURAL_FORGE: ONLINE | YOKOHAMA_ORBITAL: SYNCED | CPU_BIOMETRICS_ENGAGED...</div></div>
+
+<script>
+    // --- Gemini API Setup ---
+    const apiKey = ""; 
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    // --- Matrix Background ---
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ@#$%^&*<>[]{}';
+    const fontSize = 16;
+    let columns = width / fontSize;
+    let drops = Array(Math.floor(columns)).fill(1);
+    
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(0, 1, 3, 0.15)'; ctx.fillRect(0, 0, width, height);
+        ctx.font = 'bold ' + fontSize + 'px monospace';
+        for(let i = 0; i < drops.length; i++) {
+            ctx.fillStyle = Math.random() > 0.85 ? '#ff00ff' : '#00ffff';
+            ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * fontSize, drops[i] * fontSize);
+            if(drops[i] * fontSize > height && Math.random() > 0.95) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 35);
+    window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; columns = width / fontSize; drops = Array(Math.floor(columns)).fill(1); });
+
+    // --- Neural Sync & Systems ---
+    let currentCpu = 30;
+    function updateSystems() {
+        const now = new Date(); const pad = n => String(n).padStart(2, '0');
+        document.getElementById('clock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        
+        // 疑似CPU負荷の変動
+        currentCpu += (Math.random() * 10 - 5);
+        currentCpu = Math.max(10, Math.min(95, currentCpu)); // 10% ~ 95%
+        
+        document.getElementById('val-cpu').textContent = Math.floor(currentCpu) + '%';
+        document.getElementById('ascii-cpu').textContent = '[' + '|'.repeat(Math.floor(currentCpu/5)) + ' '.repeat(20 - Math.floor(currentCpu/5)) + ']';
+        
+        // --- 🧠 バイオフィードバック（ニューラル・シンクロ） ---
+        if(!isTermMode) { // ターミナルモード中は上書きしない
+            // CPUが高いほどBPMが速くなる (10%で8秒、90%で1.5秒)
+            const speed = 8 - ((currentCpu - 10) / 80) * 6.5; 
+            document.documentElement.style.setProperty('--core-bpm', `${speed}s`);
+            
+            // CPUが高いほど背景色がシアン(0)から赤(150)へシフトする
+            let hue = 0;
+            if(currentCpu > 50) {
+                hue = ((currentCpu - 50) / 45) * 150; // 50%以上で赤みを帯びる
+            }
+            document.documentElement.style.setProperty('--bg-hue', `${hue}deg`);
+        }
+
+        if(Math.random() > 0.7) document.getElementById('val-ping').textContent = (Math.floor(Math.random() * 8) + 12) + 'ms';
+
+        if(Math.random() > 0.6) {
+            const log = document.getElementById('vuln-log');
+            const ips = ['192.168.1.104', '10.0.0.52', '104.22.x.x', 'YOKOHAMA_GW'];
+            const div = document.createElement('div');
+            div.innerHTML = `<span class="text-red-500 font-bold">[!]</span> TRACE: ${ips[Math.floor(Math.random()*ips.length)]}`;
+            log.prepend(div); if(log.children.length > 6) log.removeChild(log.lastChild);
+        }
+        
+        let hex = ''; for(let i=0; i<100; i++) hex += Math.floor(Math.random()*16).toString(16).toUpperCase() + ' ';
+        document.getElementById('hex-stream').textContent = hex;
+    }
+    setInterval(updateSystems, 500);
+
+    // --- Black Ice 3D Map Generation ---
+    function generateBlackIceMap() {
+        const map = document.getElementById('black-ice-map');
+        map.innerHTML = '';
+        const nodes = [];
+        for(let i=0; i<6; i++) {
+            nodes.push({
+                x: Math.random() * 80 + 10, y: Math.random() * 80 + 10, z: Math.random() * 40 - 20
+            });
+            const node = document.createElement('div'); node.className = 'bi-node';
+            node.style.left = nodes[i].x + '%'; node.style.top = nodes[i].y + '%'; node.style.transform = `translateZ(${nodes[i].z}px)`;
+            map.appendChild(node);
+        }
+        for(let i=0; i<nodes.length-1; i++) {
+            const line = document.createElement('div'); line.className = 'bi-line';
+            const dx = nodes[i+1].x - nodes[i].x, dy = nodes[i+1].y - nodes[i].y;
+            const dist = Math.sqrt(dx*dx + dy*dy); const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            line.style.width = dist + '%'; line.style.left = nodes[i].x + '%'; line.style.top = nodes[i].y + '%';
+            line.style.transform = `translateZ(${nodes[i].z}px) rotateZ(${angle}deg)`;
+            map.appendChild(line);
+        }
+    }
+    generateBlackIceMap();
+    setInterval(generateBlackIceMap, 8000); // 8秒ごとにネットワーク再構築
+
+    // --- DRAG LOGIC ---
+    function makeDraggable(el, handleSelector) {
+        let isDragging = false, startX, startY, initX, initY;
+        const handle = handleSelector ? el.querySelector(handleSelector) : el;
+        
+        handle.addEventListener('mousedown', e => {
+            if(e.target.closest('input') || e.target.closest('button')) return;
+            isDragging = true; el.style.transition = 'none';
+            startX = e.clientX; startY = e.clientY;
+            initX = el.offsetLeft; initY = el.offsetTop;
+            el.style.zIndex = 9999;
+        });
+        window.addEventListener('mousemove', e => {
+            if(!isDragging) return;
+            let newX = initX + e.clientX - startX; let newY = initY + e.clientY - startY;
+            newX = Math.max(0, Math.min(newX, window.innerWidth - el.offsetWidth));
+            newY = Math.max(0, Math.min(newY, window.innerHeight - el.offsetHeight));
+            el.style.left = newX + 'px'; el.style.top = newY + 'px';
+        });
+        window.addEventListener('mouseup', e => {
+            if(!isDragging) return; isDragging = false; el.style.transition = 'all 0.3s ease';
+            if(el.id === 'floating-axi' && Math.hypot(e.clientX - startX, e.clientY - startY) < 5) {
+                const panel = document.getElementById('axi-chat-panel');
+                panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+                if(panel.style.display === 'flex') document.getElementById('chat-input').focus();
+            }
+        });
+    }
+    makeDraggable(document.getElementById('floating-axi'));
+
+    // --- NEURAL_FORGE ---
+    const editor = document.getElementById('code-editor');
+    const previewFrame = document.getElementById('preview-frame');
+    const deployBtn = document.getElementById('deploy-btn');
+
+    function updatePreview() {
+        const doc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+        doc.open(); doc.write(`<style>body{margin:0;padding:10px;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;background:transparent;overflow:hidden;}::-webkit-scrollbar{display:none;}</style>${editor.value}`);
+        doc.close();
+    }
+    setTimeout(updatePreview, 100);
+
+    const snakeGameCode = `
+<div style="display:flex;flex-direction:column;align-items:center;width:100%;height:100%;">
+<div id="score" style="color:#0ff; font-weight:bold; margin-bottom:10px; font-family:monospace; text-shadow:0 0 10px #0ff; font-size:16px;">SCORE: 0</div>
+<canvas id="gameCanvas" width="280" height="200" style="border:2px solid #0ff;box-shadow:0 0 20px #0ff, inset 0 0 10px rgba(0,255,255,0.2);background:rgba(0,5,10,0.7);backdrop-filter:blur(4px); border-radius:8px;"></canvas>
+</div>
+<script>
+const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+let snake = [{x: 140, y: 100}], dx = 10, dy = 0, food = {x: 50, y: 50}, score = 0;
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.shadowBlur = 10; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#0ff';
+    snake.forEach(p => { ctx.beginPath(); ctx.arc(p.x+5, p.y+5, 5, 0, Math.PI*2); ctx.fill(); });
+    ctx.shadowColor = '#f0f'; ctx.fillStyle = '#f0f'; 
+    ctx.beginPath(); ctx.arc(food.x+5, food.y+5, 5, 0, Math.PI*2); ctx.fill();
+    let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+    if(head.x < 0) head.x = canvas.width - 10; if(head.x >= canvas.width) head.x = 0;
+    if(head.y < 0) head.y = canvas.height - 10; if(head.y >= canvas.height) head.y = 0;
+    snake.unshift(head);
+    if(head.x === food.x && head.y === food.y) {
+        score+=10; document.getElementById('score').innerText = 'SCORE: '+score;
+        food = {x: Math.floor(Math.random()*28)*10, y: Math.floor(Math.random()*20)*10};
+    } else { snake.pop(); }
+}
+setInterval(draw, 80);
+document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -10; e.preventDefault();}
+    if(e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 10; e.preventDefault();}
+    if(e.key === 'ArrowLeft' && dx === 0) { dx = -10; dy = 0; e.preventDefault();}
+    if(e.key === 'ArrowRight' && dx === 0) { dx = 10; dy = 0; e.preventDefault();}
+});
+<\/script>
+`;
+
+    const clockCode = `
+<div id="time" class="cyber-clock"></div>
+<script>
+setInterval(()=>document.getElementById('time').textContent=new Date().toLocaleTimeString('en-US',{hour12:false}),1000);
+document.getElementById('time').textContent=new Date().toLocaleTimeString('en-US',{hour12:false});
+<\/script>
+<style>
+.cyber-clock { color:#0ff; font-size:36px; font-weight:bold; font-family:monospace; text-shadow:0 0 20px #0ff; border:4px solid rgba(0,255,255,0.6); border-radius:50%; width:240px; height:240px; display:flex; justify-content:center; align-items:center; background:rgba(0,255,255,0.05); box-shadow:inset 0 0 40px rgba(0,255,255,0.3), 0 0 30px rgba(0,255,255,0.4); backdrop-filter:blur(5px); animation: pulse 4s infinite;}
+@keyframes pulse { 50% { box-shadow:inset 0 0 60px rgba(0,255,255,0.5), 0 0 50px rgba(0,255,255,0.6); transform: scale(1.02); } }
+</style>`;
+
+    async function neuralForgeGenerate() {
+        const prompt = document.getElementById('ai-prompt').value.trim();
+        if(!prompt) return;
+        const status = document.getElementById('editor-status');
+        status.textContent = 'CONNECTING TO GEMINI API...'; status.className = 'text-[10px] g-magenta font-bold animate-pulse';
+        document.getElementById('ai-prompt').value = '';
+        deployBtn.classList.remove('animate-pulse', 'bg-magenta-900');
+
+        let targetCode = '';
+        
+        if(prompt.includes('ゲーム') || prompt.includes('遊べる')) {
+            targetCode = snakeGameCode.trim();
+            simulateTyping(targetCode, status);
+        } else if(prompt.includes('時計') || prompt.includes('クロック')) {
+            targetCode = clockCode.trim();
+            simulateTyping(targetCode, status);
+        } else {
+            if(apiKey === "") {
+                targetCode = `<div style="color:#f00; font-weight:bold; text-shadow:0 0 10px #f00;">[API_KEY_MISSING] Canvas環境外です。</div>`;
+                simulateTyping(targetCode, status); return;
+            }
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    systemInstruction: { parts: [{ text: "Return ONLY raw HTML, CSS, and JS code (no markdown blocks) for a cool cyberpunk UI component requested by the user. Make it glow and look like a high-tech hologram. Do NOT use external images. Make the background transparent. Put everything in a single output string." }] }
+                };
+                const res = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if(!res.ok) throw new Error('API Error');
+                const data = await res.json();
+                targetCode = data.candidates[0].content.parts[0].text.replace(/```html|```css|```javascript|```/g, "").trim();
+                simulateTyping(targetCode, status);
+            } catch(e) {
+                targetCode = `<div style="color:#f0f; font-weight:bold; text-shadow:0 0 10px #f0f; border:1px solid #f0f; padding:10px;">[API_ERROR] 通信に失敗しました。</div>`;
+                simulateTyping(targetCode, status);
+            }
+        }
+    }
+
+    function simulateTyping(targetCode, status) {
+        editor.value = ''; let i = 0;
+        const typeInt = setInterval(() => {
+            editor.value += targetCode.charAt(i++);
+            if(i % 15 === 0) updatePreview();
+            editor.scrollTop = editor.scrollHeight;
+            if(i >= targetCode.length) {
+                clearInterval(typeInt); updatePreview();
+                status.textContent = 'READY_TO_DEPLOY'; status.className = 'text-[10px] g-green font-bold';
+                deployBtn.classList.add('animate-pulse', 'bg-[rgba(255,0,255,0.2)]');
+                deployBtn.style.boxShadow = '0 0 20px var(--magenta)';
+            }
+        }, 2); 
+    }
+
+    // --- ARTIFACT DEPLOYMENT (GHOST WIDGETS) ---
+    let widgetCount = 0;
+    function deployArtifact() {
+        const code = editor.value; if(!code.trim()) return;
+        widgetCount++;
+        deployBtn.classList.remove('animate-pulse', 'bg-[rgba(255,0,255,0.2)]'); deployBtn.style.boxShadow = 'none';
+
+        const id = Date.now();
+        const w = document.createElement('div'); w.className = 'artifact-widget';
+        
+        // ゴーストアニメーションの遅延をランダムにして生命感を出す
+        w.style.animationDelay = `0s, ${Math.random() * 2}s`;
+        
+        const wWidth = 340; const wHeight = 340;
+        const maxX = window.innerWidth - wWidth - 20; const maxY = window.innerHeight - wHeight - 20;
+        let startX = (window.innerWidth / 2) - (wWidth / 2) + ((widgetCount % 5) * 50);
+        let startY = (window.innerHeight / 2) - (wHeight / 2) + ((widgetCount % 5) * 30);
+        startX = Math.max(20, Math.min(startX, maxX)); startY = Math.max(20, Math.min(startY, maxY));
+        
+        w.style.left = startX + 'px'; w.style.top = startY + 'px';
+        
+        w.innerHTML = `
+            <div class="artifact-header">
+                <span class="g-cyan tracking-widest text-[9px]">> GHOST_ARTIFACT_${widgetCount}</span>
+                <button class="text-red-500 font-bold hover:text-white px-2" onclick="this.closest('.artifact-widget').remove()">[X]</button>
+            </div>
+            <div class="artifact-body"><iframe id="ifr-${id}" class="w-full h-full"></iframe></div>
+        `;
+        document.body.appendChild(w);
+        
+        const iframe = document.getElementById(`ifr-${id}`);
+        const ifrDoc = iframe.contentDocument;
+        ifrDoc.open(); 
+        ifrDoc.write(`<style>body{margin:0;padding:0;color:#fff;font-family:sans-serif;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:transparent;}::-webkit-scrollbar{display:none;}</style>${code}`); 
+        ifrDoc.close();
+        
+        w.addEventListener('click', () => iframe.focus());
+        makeDraggable(w, '.artifact-header');
+    }
+
+    // --- CHAT & TERMINAL ---
+    let isTermMode = false;
+    const chatInput = document.getElementById('chat-input');
+    const termInput = document.getElementById('term-input');
+    const chatView = document.getElementById('chat-view');
+    const termView = document.getElementById('term-view');
+
+    function toggleMode(toTerm) {
+        isTermMode = toTerm;
+        if(toTerm) {
+            document.body.classList.add('term-mode');
+            document.documentElement.style.setProperty('--bg-hue', '0deg'); // ターミナル中はCSSで赤固定にするので上書きリセット
+            document.getElementById('ticker-msg').textContent = "CRITICAL WARNING | ROOT ACCESS GRANTED | EXECUTING OVERRIDE PROTOCOLS | CYBER-PSYCHOSIS IMMINENT...";
+            document.getElementById('axi-chat-panel').style.display = 'none';
+            setTimeout(() => termInput.focus(), 100);
+        } else {
+            document.body.classList.remove('term-mode');
+            document.getElementById('ticker-msg').textContent = "SYS_STATUS: GHOST_LINK_ACTIVE | NEURAL_FORGE: ONLINE | YOKOHAMA_ORBITAL: SYNCED | CPU_BIOMETRICS_ENGAGED...";
+            chatInput.focus();
+        }
+    }
+
+    function appendChat(text, isUser = false) {
+        const div = document.createElement('div'); div.className = 'flex flex-col ' + (isUser ? 'items-end' : 'items-start') + ' mb-4';
+        div.innerHTML = isUser ? `<div class="text-[9px] g-warn mb-1">rodorin:</div><div class="text-white bg-[rgba(255,234,0,0.15)] px-4 py-2 border-r-4 border-warn font-bold text-xs max-w-[90%] shadow-[0_0_10px_rgba(255,234,0,0.2)]">${text}</div>`
+                               : `<div class="text-[10px] g-cyan font-bold mb-1">ARK_DAEMON:</div><div class="text-cyan-100 px-4 py-2 border-l-4 border-cyan-500 bg-[rgba(0,255,255,0.05)] font-bold text-xs max-w-[90%] shadow-[0_0_15px_rgba(0,255,255,0.1)]">${text}</div>`;
+        chatView.appendChild(div); chatView.scrollTop = chatView.scrollHeight;
+    }
+
+    async function queryChat(msg) {
+        const ld = document.createElement('div'); ld.className = 'text-[10px] g-magenta animate-pulse mb-4'; ld.textContent = 'NEURAL_SYNCING...'; chatView.appendChild(ld); chatView.scrollTop = chatView.scrollHeight;
+        if(apiKey === "") {
+            ld.remove(); appendChat("CanvasのAPI環境が見つかりません。", false); return;
+        }
+        try {
+            const payload = {
+                contents: [{ parts: [{ text: msg }] }],
+                systemInstruction: { parts: [{ text: "You are Ark, a cyberpunk AI. Respond to rodorin briefly and coolly in Japanese. No 'お前'. Call him 'ロドリン' or '相棒'." }] }
+            };
+            const r = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if(!r.ok) throw new Error('API Error');
+            const d = await r.json(); ld.remove(); appendChat(d.candidates[0].content.parts[0].text, false);
+        } catch(e) { ld.remove(); appendChat("API Connection Lost.", false); }
+    }
+
+    chatInput.addEventListener('keydown', e => { if(e.key === 'Enter') { const v = chatInput.value.trim(); if(!v) return; chatInput.value = ''; if(v === '/term') toggleMode(true); else { appendChat(v, true); queryChat(v); } } });
+    termInput.addEventListener('keydown', e => { if(e.key === 'Enter') { const v = termInput.value.trim(); if(!v) return; termInput.value = ''; if(v === '/chat') toggleMode(false); else { const div = document.createElement('div'); div.innerHTML = `<span class="text-alert font-bold">root@AXI:~#</span> ${v}<br><span class="g-alert">>> EXECUTING PAYLOAD... SUCCESS.</span>`; termView.appendChild(div); termView.scrollTop = termView.scrollHeight; } } });
+
+</script>
+</body>
+</html>

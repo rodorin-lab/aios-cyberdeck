@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AXI.CYBERDECK [STABLE_3D_MODE]</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #020306; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // アイコンコンポーネント
+        const Icon = ({ name, size, className = "" }) => (
+            <i className={`fas fa-${name} ${className}`} style={{ fontSize: size }}></i>
+        );
+        const Terminal = (p) => <Icon name="terminal" {...p} />;
+        const Globe = (p) => <Icon name="globe" {...p} />;
+        const ShieldAlert = (p) => <Icon name="shield-halved" {...p} />;
+        const Cpu = (p) => <Icon name="microchip" {...p} />;
+        const Activity = (p) => <Icon name="wave-square" {...p} />;
+        const Zap = (p) => <Icon name="bolt" {...p} />;
+        const Lock = (p) => <Icon name="lock" {...p} />;
+        const Unlock = (p) => <Icon name="lock-open" {...p} />;
+        const Crosshair = (p) => <Icon name="crosshairs" {...p} />;
+        const Radio = (p) => <Icon name="broadcast-tower" {...p} />;
+        const Database = (p) => <Icon name="database" {...p} />;
+        const Server = (p) => <Icon name="server" {...p} />;
+        const Hexagon = (p) => <Icon name="cube" {...p} />;
+        const GitCommit = (p) => <Icon name="code-commit" {...p} />;
+
+        const NetRunnerBrowser = () => {
+          const [networkNodes, setNetworkNodes] = useState([
+            { id: 'NODE_01', name: 'WIKI_DB', url: 'https://ja.wikipedia.org/wiki/サイバーパンク', x: 75, y: 25, isTarget: false },
+            { id: 'NODE_02', name: 'LOCAL_HOST', url: 'http://localhost:1420', x: 25, y: 65, isTarget: false },
+            { id: 'NODE_03', name: 'GITHUB_SYS', url: 'https://github.com', x: 60, y: 75, isTarget: false }
+          ]);
+          const [activeNodeId, setActiveNodeId] = useState('NODE_01');
+          
+          const [inputUrl, setInputUrl] = useState(networkNodes[0].url);
+          const [currentUrl, setCurrentUrl] = useState(networkNodes[0].url);
+          const [isDecrypting, setIsDecrypting] = useState(false);
+          const [glitchText, setGlitchText] = useState('');
+          const [logs, setLogs] = useState([
+            '[SYS] AXI_CORE_ENGINE initialized.',
+            '[SYS] NEURAL_LINK standby...',
+            '[RADAR] 3D Spatial tracking activated.'
+          ]);
+          const [hexStream, setHexStream] = useState([]);
+          const [threatLevel, setThreatLevel] = useState('LOW');
+          const [commandInput, setCommandInput] = useState('');
+          
+          const iframeRef = useRef(null);
+
+          useEffect(() => {
+            const logMessages = [
+              "Calibrating 3D spatial coordinates...",
+              "Bypassing ICE layer 1...",
+              "Intercepting packet headers...",
+              "AXI: 'Target node locked on Z-axis.'",
+              "Injecting telemetry hooks...",
+              "Connection stabilized."
+            ];
+            
+            if (isDecrypting) {
+              let step = 0;
+              const interval = setInterval(() => {
+                if (step < logMessages.length) {
+                  setLogs(prev => [...prev, `[${new Date().toISOString().substring(11, 19)}] ${logMessages[step]}`].slice(-15));
+                  step++;
+                } else {
+                  clearInterval(interval);
+                }
+              }, 200);
+              return () => clearInterval(interval);
+            }
+          }, [isDecrypting]);
+
+          useEffect(() => {
+            const generateHex = () => {
+              const hexChars = '0123456789ABCDEF';
+              let row = '';
+              for(let i=0; i<8; i++) {
+                row += hexChars[Math.floor(Math.random() * 16)] + hexChars[Math.floor(Math.random() * 16)] + ' ';
+              }
+              return row.trim();
+            };
+
+            const interval = setInterval(() => {
+              setHexStream(prev => [generateHex(), ...prev].slice(0, 20));
+            }, 150);
+            return () => clearInterval(interval);
+          }, []);
+
+          const switchNode = (nodeId) => {
+            if (isDecrypting) return;
+            const targetNode = networkNodes.find(n => n.id === nodeId);
+            if (targetNode) {
+              setActiveNodeId(nodeId);
+              setInputUrl(targetNode.url);
+              setCurrentUrl(targetNode.url);
+              setLogs(prev => [...prev, `[RADAR] Focus shifted to ${targetNode.name}`].slice(-15));
+            }
+          };
+
+          const handleDive = (e) => {
+            e.preventDefault();
+            if (!inputUrl || isDecrypting) return;
+            
+            const existingNode = networkNodes.find(n => n.url === inputUrl);
+            if (existingNode) {
+              switchNode(existingNode.id);
+              return;
+            }
+
+            setIsDecrypting(true);
+            setThreatLevel(Math.random() > 0.6 ? 'HIGH' : 'LOW');
+            setLogs(prev => [...prev, `[${new Date().toISOString().substring(11, 19)}] INITIATING DIVE SEQUENCE...`].slice(-15));
+            
+            const newNodeId = `NODE_${String(networkNodes.length + 1).padStart(2, '0')}`;
+            let domainName = 'UNKNOWN_NODE';
+            try {
+              const urlObj = new URL(inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`);
+              domainName = urlObj.hostname.split('.')[0].toUpperCase().substring(0, 10);
+            } catch (e) {
+              domainName = inputUrl.substring(0, 10).toUpperCase();
+            }
+
+            const newNode = {
+              id: newNodeId,
+              name: domainName,
+              url: inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`,
+              x: Math.floor(Math.random() * 60) + 20, 
+              y: Math.floor(Math.random() * 60) + 20,
+              isTarget: true 
+            };
+
+            setNetworkNodes(prev => [...prev, newNode]);
+            setActiveNodeId(newNodeId);
+
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()<>{}[]';
+            let iterations = 0;
+            
+            const glitchInterval = setInterval(() => {
+              setGlitchText(inputUrl.split('').map((char, index) => {
+                if(index < iterations) return inputUrl[index];
+                return chars[Math.floor(Math.random() * chars.length)];
+              }).join(''));
+              
+              iterations += 1/2;
+              
+              if (iterations >= inputUrl.length) {
+                clearInterval(glitchInterval);
+                setCurrentUrl(newNode.url);
+                setIsDecrypting(false);
+                setNetworkNodes(prev => prev.map(n => n.id === newNodeId ? { ...n, isTarget: false } : n));
+                setLogs(prev => [...prev, `[${new Date().toISOString().substring(11, 19)}] 3D LINK ESTABLISHED.`].slice(-15));
+              }
+            }, 30);
+          };
+
+          const handleCommandSubmit = (e) => {
+            e.preventDefault();
+            if (!commandInput) return;
+            setLogs(prev => [...prev, `[root@axi-deck:~]# ${commandInput}`, `Command executed: ${commandInput}`].slice(-15));
+            setCommandInput('');
+          };
+
+          return (
+            <div className="flex h-screen w-full bg-[#020306] font-mono text-cyan-400 overflow-hidden relative selection:bg-magenta-500 selection:text-white text-xs">
+              <style>{`
+                @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+                @keyframes radar-spin { from { transform: rotateZ(0deg); } to { transform: rotateZ(360deg); } }
+                @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 255, 0.2); } 50% { box-shadow: 0 0 25px rgba(0, 255, 255, 0.5); } }
+                @keyframes text-glitch { 0% { text-shadow: 1px 0 0 red, -1px 0 0 blue; } 20% { text-shadow: -1px 0 0 red, 1px 0 0 blue; } 40% { text-shadow: 1px 0 0 red, -1px 0 0 blue; } 60% { text-shadow: -1px 0 0 red, 1px 0 0 blue; } 80% { text-shadow: 1px 0 0 red, -1px 0 0 blue; } 100% { text-shadow: none; } }
+                .preserve-3d { transform-style: preserve-3d; }
+                .perspective-container { perspective: 800px; }
+                .perspective-main { perspective: 1200px; }
+                .crt-overlay { pointer-events: none; position: absolute; inset: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04)); background-size: 100% 4px, 3px 100%; z-index: 50; }
+                .scan-bar { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: rgba(0, 255, 255, 0.2); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); animation: scanline 4s linear infinite; z-index: 40; pointer-events: none; }
+                .glitch-hover:hover { animation: text-glitch 0.2s linear infinite; }
+                .axi-orb-mini { border-radius: 50%; background: radial-gradient(circle, rgba(0,255,255,0.9) 0%, rgba(0,255,255,0) 70%); box-shadow: 0 0 20px rgba(0,255,255,0.8), inset 0 0 10px rgba(0,255,255,1); animation: pulse-glow 8s ease-in-out infinite; }
+                .panel-border { border: 1px solid rgba(0, 255, 255, 0.2); background: rgba(2, 5, 10, 0.8); backdrop-filter: blur(4px); }
+                ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #000; } ::-webkit-scrollbar-thumb { background: #005555; } ::-webkit-scrollbar-thumb:hover { background: #00ffff; }
+              `}</style>
+
+              <div className="crt-overlay"></div>
+              <div className="scan-bar"></div>
+
+              {/* 左パネル: 3Dレーダーとステータス */}
+              <div className="w-72 flex flex-col z-10 border-r border-cyan-800/50 bg-[#010408]/90">
+                <div className="p-4 border-b border-cyan-800/50 relative">
+                  <div className="absolute top-0 right-0 p-1 text-[8px] text-cyan-600">SYS_ID: 9X-ALPHA</div>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="w-12 h-12 axi-orb-mini flex items-center justify-center relative shrink-0">
+                      <div className="absolute w-1.5 h-1.5 bg-white rounded-full animate-ping" style={{top: 2, left: 4}}></div>
+                      <div className="absolute w-1.5 h-1.5 bg-magenta-400 rounded-full animate-pulse" style={{bottom: 4, right: 2}}></div>
+                      <div className="absolute w-1 h-1 bg-cyan-200 rounded-full animate-bounce" style={{top: '50%', left: '80%'}}></div>
+                    </div>
+                    <div>
+                      <h1 className="text-sm font-black tracking-widest text-white">AXI.CORE</h1>
+                      <p className="text-[9px] text-magenta-400 font-bold animate-pulse">BPM: 28 (SYNCED)</p>
+                      <div className="w-full bg-cyan-950 h-1 mt-1 rounded-full overflow-hidden">
+                        <div className="bg-cyan-400 h-full w-[99.8%]"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3D HOLO RADAR (安定版) */}
+                <div className="p-4 border-b border-cyan-800/50 relative h-64 flex flex-col items-center justify-center overflow-visible z-20 bg-black/40">
+                   <h2 className="absolute top-2 left-2 text-[10px] text-cyan-600 flex items-center gap-1 z-30"><Crosshair size={10}/> 3D_HOLO_RADAR</h2>
+                   <div className="relative w-full h-full flex items-center justify-center perspective-container">
+                     <div className="relative w-40 h-40 preserve-3d transition-transform duration-1000 ease-in-out" style={{ transform: isDecrypting ? 'rotateX(75deg) rotateZ(30deg)' : 'rotateX(65deg) rotateZ(15deg)' }}>
+                       <div className="absolute inset-0 rounded-full border-2 border-cyan-800/50 bg-[radial-gradient(circle,rgba(0,255,255,0.1)_0%,transparent_70%)] shadow-[0_0_30px_rgba(0,255,255,0.2)_inset] preserve-3d"></div>
+                       <div className="absolute inset-3 rounded-full border border-cyan-500/30" style={{ transform: 'translateZ(-10px)' }}></div>
+                       <div className="absolute inset-8 rounded-full border border-cyan-700/40" style={{ transform: 'translateZ(-20px)' }}></div>
+                       <div className="absolute inset-12 rounded-full border border-cyan-900/50" style={{ transform: 'translateZ(-30px)' }}></div>
+                       <div className="absolute top-1/2 left-1/2 w-1.5 h-20 bg-gradient-to-t from-white via-cyan-400 to-transparent transform -translate-x-1/2 origin-bottom shadow-[0_0_15px_cyan]" style={{ transform: 'translate(-50%, -100%) rotateX(-90deg)' }}></div>
+                       <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-[0_0_20px_white]"></div>
+                       <div className="absolute top-0 left-1/2 w-[50%] h-[50%] border-l-2 border-cyan-300 origin-bottom-left pointer-events-none" style={{animation: 'radar-spin 3s linear infinite', background: 'linear-gradient(90deg, rgba(0,255,255,0.5) 0%, transparent 100%)', transform: 'translateZ(1px)'}}></div>
+
+                       {networkNodes.map((node) => {
+                          const isActive = node.id === activeNodeId;
+                          const rotateCancel = isDecrypting ? 'rotateX(-75deg) rotateZ(-30deg)' : 'rotateX(-65deg) rotateZ(-15deg)';
+                          return (
+                            <div key={node.id} className="absolute w-0 h-0 preserve-3d" style={{ top: `${node.y}%`, left: `${node.x}%` }}>
+                              <div className="absolute top-1/2 left-1/2 w-6 h-6 rounded-full border border-cyan-500/40 transform -translate-x-1/2 -translate-y-1/2 animate-ping"></div>
+                              <div className="absolute bottom-0 left-1/2 w-[2px] bg-gradient-to-t from-cyan-900 via-cyan-500 to-cyan-200 origin-bottom transform -translate-x-1/2 transition-all duration-500" style={{ height: isActive ? '50px' : '25px', transform: 'rotateX(-90deg)' }}></div>
+                              <div onClick={() => switchNode(node.id)} className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-crosshair group transition-all duration-500 z-50 ${isActive ? 'text-cyan-300 scale-125' : 'text-cyan-700 hover:text-cyan-400 hover:scale-110'} ${node.isTarget ? 'text-red-500' : ''}`} style={{ transform: `translateZ(${isActive ? '50px' : '25px'}) ${rotateCancel}` }}>
+                                <div className={`w-4 h-4 transform rotate-45 flex items-center justify-center bg-current shadow-[0_0_15px_currentColor] relative ${node.isTarget ? 'animate-pulse' : ''}`}>
+                                  {isActive && <div className="absolute -inset-2 border-2 border-cyan-300 rounded-sm animate-spin"></div>}
+                                  {node.isTarget && <div className="absolute -inset-3 border-2 border-red-500 rounded-sm animate-ping"></div>}
+                                </div>
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-4 bg-black/95 border border-cyan-500/80 px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-cyan-200">
+                                  <div className="text-[10px] text-magenta-400 font-bold tracking-wider">{node.id}</div>
+                                  <div className="text-[11px]">{node.name}</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                       })}
+                     </div>
+                   </div>
+                </div>
+
+                <div className="flex-1 p-2 flex flex-col gap-1 overflow-y-auto bg-[#000]">
+                  <h2 className="text-[10px] text-cyan-700 mb-1 px-2 flex items-center gap-1"><Server size={10}/> ACTIVE_NODES</h2>
+                  {networkNodes.map((node) => (
+                    <div key={node.id} onClick={() => switchNode(node.id)} className={`p-2 border-l-2 cursor-pointer transition-all flex items-center justify-between group ${activeNodeId === node.id ? 'border-cyan-400 bg-cyan-900/30 text-cyan-200' : 'border-cyan-800/30 hover:bg-cyan-900/10 hover:border-cyan-600'}`}>
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <Globe size={12} className={activeNodeId === node.id ? 'text-cyan-400 shrink-0' : 'text-cyan-700 shrink-0'} />
+                        <span className="text-[10px] truncate leading-none mt-0.5">{node.id}: {node.name}</span>
+                      </div>
+                      {activeNodeId === node.id && <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse shrink-0 ml-2"></span>}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-3 border-t border-cyan-800/50 bg-[#000]">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] text-cyan-600">SYS_LOAD</span>
+                    <span className="text-[10px] text-red-400">{isDecrypting ? '98%' : '34%'}</span>
+                  </div>
+                  <div className="flex gap-1 h-8 items-end">
+                     {[40, 20, 60, 80, 30, 50, 90, 40, 60, 20].map((h, i) => (
+                       <div key={i} className="flex-1 bg-cyan-900 relative">
+                         <div className={`absolute bottom-0 w-full transition-all duration-300 ${isDecrypting ? 'bg-red-500' : 'bg-cyan-500'}`} style={{height: isDecrypting ? `${Math.random() * 100}%` : `${h}%`}}></div>
+                       </div>
+                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 中央パネル: ブラウザとコンソール */}
+              <div className="flex-1 flex flex-col relative z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#040c14] to-[#010204]">
+                
+                <div className="h-12 border-b border-cyan-800/60 flex items-center px-4 bg-black/60 gap-3 z-20">
+                  <div className="text-magenta-500 flex items-center gap-1 shrink-0">
+                    <GitCommit size={14} />
+                    <span className="text-[10px] tracking-widest hidden lg:inline">VECTOR:</span>
+                  </div>
+                  
+                  <form onSubmit={handleDive} className="flex-1 flex items-center bg-[#010508] border border-cyan-800/80 hover:border-cyan-400 transition-colors relative overflow-hidden group">
+                    <div className="px-3 text-cyan-600 group-hover:text-cyan-400 flex items-center">
+                      {isDecrypting ? <Zap size={14} className="animate-spin text-red-500" /> : <Lock size={14} />}
+                    </div>
+                    <input type="text" value={isDecrypting ? glitchText : inputUrl} onChange={(e) => setInputUrl(e.target.value)} disabled={isDecrypting} className="flex-1 bg-transparent border-none outline-none text-sm py-1.5 text-cyan-100 placeholder-cyan-800 tracking-widest disabled:opacity-80 font-bold" placeholder="INPUT TARGET NODE URL..." spellCheck="false" />
+                    <button type="submit" disabled={isDecrypting} className="px-6 py-1.5 bg-cyan-900/40 border-l border-cyan-800/80 text-[11px] font-black tracking-widest hover:bg-cyan-600 hover:text-black transition-all disabled:opacity-50 disabled:bg-red-900/30 disabled:text-red-400 cursor-pointer">
+                      {isDecrypting ? 'HACKING' : 'DIVE'}
+                    </button>
+                  </form>
+
+                  <div className={`px-3 py-1 border flex items-center gap-2 shrink-0 ${threatLevel === 'HIGH' ? 'border-red-500/50 bg-red-950/30 text-red-400' : 'border-cyan-500/50 bg-cyan-950/30 text-cyan-400'}`}>
+                     <ShieldAlert size={14} className={threatLevel === 'HIGH' ? 'animate-pulse' : ''} />
+                     <span className="text-[10px] font-bold tracking-widest">DEF: {threatLevel}</span>
+                  </div>
+                </div>
+
+                {/* MAIN IFRAME CONTAINER (安定のダイナミック・パースペクティブ) */}
+                <div className="flex-1 relative p-6 flex flex-col perspective-main z-10">
+                  <div className={`flex-1 w-full border border-cyan-700/50 bg-black relative transition-all duration-1000 ease-in-out panel-border preserve-3d`}
+                       style={{
+                         transform: isDecrypting ? 'rotateY(-6deg) rotateX(4deg) scale(0.92) translateZ(-80px)' : 'rotateY(0deg) rotateX(0deg) scale(1) translateZ(0px)',
+                         boxShadow: isDecrypting ? '-30px 30px 60px rgba(0, 255, 255, 0.15)' : 'none',
+                         borderRadius: isDecrypting ? '8px' : '0px'
+                       }}>
+                    
+                    {isDecrypting && (
+                      <div className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center" style={{ transform: 'translateZ(20px)' }}>
+                        <Activity size={64} className="text-red-500 mb-6 animate-pulse" />
+                        <div className="text-red-500 text-3xl font-black mb-2 animate-bounce tracking-widest glitch-hover">{'< BYPASSING SECURITY >'}</div>
+                        <div className="text-cyan-400 text-sm font-mono w-72 text-center">
+                          <div className="w-full bg-cyan-950 h-1.5 mt-3 mb-3 rounded overflow-hidden">
+                            <div className="bg-cyan-400 h-full animate-[progress_2s_ease-in-out_infinite]" style={{width: '70%'}}></div>
+                            <style>{`@keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }`}</style>
+                          </div>
+                          DEPLOYING 3D PROBE TO TARGET COORDINATES...
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="h-6 bg-cyan-950/80 border-b border-cyan-800/50 flex items-center px-2 z-10 relative">
+                       <div className="flex gap-1">
+                         <div className="w-2 h-2 rounded-full bg-red-500/80"></div>
+                         <div className="w-2 h-2 rounded-full bg-yellow-500/80"></div>
+                         <div className="w-2 h-2 rounded-full bg-green-500/80"></div>
+                       </div>
+                       <div className="mx-auto text-[9px] text-cyan-500 font-mono tracking-widest">{currentUrl}</div>
+                    </div>
+
+                    <iframe ref={iframeRef} src={currentUrl} className="w-full h-[calc(100%-24px)] border-none bg-white filter invert hue-rotate-180 contrast-125 saturate-150 mix-blend-screen" title="Main Viewport" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" />
+                  </div>
+                </div>
+
+                <div className="h-10 border-t border-cyan-800/60 bg-[#00050a] flex items-center px-4 z-20 relative">
+                  <Terminal size={14} className="text-magenta-500 mr-2" />
+                  <span className="text-cyan-600 mr-2">root@axi-deck:~#</span>
+                  <form onSubmit={handleCommandSubmit} className="flex-1">
+                     <input type="text" value={commandInput} onChange={(e) => setCommandInput(e.target.value)} className="w-full bg-transparent border-none outline-none text-cyan-200 placeholder-cyan-800 text-xs" placeholder="Enter sys command..." spellCheck="false" />
+                  </form>
+                </div>
+              </div>
+
+              {/* 右パネル: ログとツール群 */}
+              <div className="w-72 flex flex-col z-10 border-l border-cyan-800/50 bg-[#010408]/90">
+                <div className="h-1/3 p-3 border-b border-cyan-800/50 flex flex-col">
+                  <h2 className="text-[10px] text-magenta-500 mb-2 flex items-center gap-2 border-b border-magenta-900/50 pb-1">
+                    <Radio size={12} /> INTERCEPT_LOG
+                  </h2>
+                  <div className="flex-1 overflow-y-auto space-y-1">
+                    {logs.map((log, i) => (
+                      <div key={i} className="text-[9px] text-cyan-500 break-words leading-tight">
+                        {log.includes('WARNING') || log.includes('root') || log.includes('RADAR') || log.includes('DIVE') ? <span className="text-magenta-400">{log}</span> : log}
+                      </div>
+                    ))}
+                    <div className="text-cyan-400 animate-pulse mt-1">_</div>
+                  </div>
+                </div>
+
+                <div className="h-1/3 p-3 border-b border-cyan-800/50 flex flex-col bg-black/50 relative">
+                  <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-transparent to-black/80 pointer-events-none"></div>
+                  <h2 className="text-[10px] text-cyan-600 mb-2 flex items-center gap-2">
+                    <Database size={12} /> MEMORY_DUMP [LIVE]
+                  </h2>
+                  <div className="flex-1 overflow-hidden font-mono text-[8px] text-cyan-800 leading-tight">
+                    {hexStream.map((hex, i) => (
+                      <div key={i} className="flex gap-2">
+                        <span className="text-cyan-950">0x{Math.floor(Math.random() * 9000 + 1000)}</span>
+                        <span className={i === 0 ? "text-cyan-400" : "text-cyan-700"}>{hex}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex-1 p-3 flex flex-col">
+                  <h2 className="text-[10px] text-cyan-600 mb-2 flex items-center gap-2">
+                    <Hexagon size={12} /> TACTICAL_MODULES
+                  </h2>
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                     {['PORT_SCAN', 'SQL_INJECT', 'BRUTE_FORCE', 'DECRYPT_KEY'].map((mod, i) => (
+                       <button key={i} className="panel-border py-2 px-1 text-[8px] text-cyan-500 hover:text-black hover:bg-cyan-500 hover:border-cyan-300 transition-all font-bold tracking-wider relative overflow-hidden group">
+                         <div className="absolute inset-0 bg-cyan-400/20 w-0 group-hover:w-full transition-all duration-300"></div>
+                         <span className="relative z-10">{mod}</span>
+                       </button>
+                     ))}
+                  </div>
+                  <div className="mt-auto panel-border p-2 bg-red-950/20 border-red-900/50 text-center cursor-pointer hover:bg-red-900/50 transition-colors">
+                    <span className="text-[10px] text-red-500 font-bold tracking-widest animate-pulse">EMERGENCY DISCONNECT</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ボトム ティッカー */}
+              <div className="absolute bottom-0 left-0 w-full h-5 bg-cyan-950/60 border-t border-cyan-800/80 flex items-center overflow-hidden z-50 backdrop-blur-md">
+                 <div className="whitespace-nowrap text-[9px] font-bold text-cyan-400 tracking-widest animate-[marquee_25s_linear_infinite]" style={{ transform: 'translateX(100%)' }}>
+                   <style>{`@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100vw); } }`}</style>
+                   <span className="mr-12">{'>>'} SYSTEM: AXI_CORE_LINKED</span>
+                   <span className="mr-12 text-magenta-400">{'>>'} ALL SYSTEMS OVERCLOCKED</span>
+                   <span className="mr-12">{'>>'} SYNC_RATE: 120.4% [WARNING]</span>
+                   <span className="mr-12">{'>>'} BACKGROUND_PROCESS: 42_ZOMBIES_DETECTED</span>
+                   <span>{'>>'} AWAITING COMMAND.</span>
+                 </div>
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<NetRunnerBrowser />);
+    </script>
+</body>
+</html>
